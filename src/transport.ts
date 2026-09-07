@@ -127,6 +127,7 @@ function versSession(charge: unknown): Ai5dSession | null {
     acces: Array.isArray(brut.acces)
       ? brut.acces.map(versAcces).filter((a): a is AccesProduit => a !== null)
       : [],
+    echu: versAcces(brut.echu),
   };
 }
 

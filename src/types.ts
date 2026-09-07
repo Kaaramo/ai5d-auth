@@ -95,4 +95,18 @@ export interface Ai5dSession {
    * traiter l un des deux de travers.
    */
   acces: AccesProduit[];
+  /**
+   * Le dernier acces ECHU sur le produit demande, quand il n en reste aucun de vivant.
+   *
+   * Il existe pour une seule raison, et elle vaut d etre dite : sans lui, le troisieme cas
+   * de `<AccesRefuse />` — « votre acces a pris fin le 20 aout » — ne serait ATTEIGNABLE PAR
+   * AUCUN CHEMIN, puisque les droits rendus sont les vivants. Le composant existerait, il
+   * serait teste, et rien ne l appellerait jamais.
+   *
+   * C est mot pour mot le defaut du sprint 04, trouve a la revue au navigateur et non par un
+   * test. On ne le refait pas.
+   *
+   * `null` des qu un acces vivant existe : deux etats a la fois ne veulent rien dire.
+   */
+  echu: AccesProduit | null;
 }
