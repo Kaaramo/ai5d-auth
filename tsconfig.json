@@ -1,1 +1,14 @@
-{ "extends": "../../tsconfig.base.json", "include": ["src", "*.ts"] }
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    /*
+      Le paquet porte desormais trois composants React, depuis le sprint 06.
+
+      `react-jsx` et non `preserve` : ce tsconfig ne sert qu au typecheck, jamais a une
+      construction. C est Next, chez le produit consommateur, qui transforme reellement le
+      JSX — d ou `transpilePackages` dans sa configuration.
+    */
+    "jsx": "react-jsx"
+  },
+  "include": ["src", "*.ts"]
+}

@@ -1,7 +1,6 @@
 'use client';
 
-import { Bouton, Carte, Icone, Pastille } from '@ai5d/design-system/composants';
-import { Lock } from 'lucide-react';
+import { Bouton, Carte, Pastille } from '@ai5d/design-system/composants';
 import { useActiveOrganization, useSession } from './hooks';
 import { urlPortail } from '../url';
 import type { AccesProduit } from '../types';
@@ -74,11 +73,20 @@ export function AccesRefuse({ produit, echu, organisation }: ProprietesAccesRefu
   return (
     <Carte>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)' }}>
+        {/*
+          AUCUNE ICONE DANS CETTE PASTILLE, ET C EST UN ARBITRAGE.
+
+          Le premier jet y posait un cadenas de Lucide. Le systeme de design installe cette
+          bibliotheque pour lui-meme, mais l importer ICI en ferait une CINQUIEME dependance
+          de pair du SDK, a declarer par chaque produit qui l adopte.
+
+          Le principe du sprint est d exposer trop peu plutot que trop : la pastille dit
+          « Acces requis » en toutes lettres, et le mot porte l information mieux qu un
+          pictogramme. Aucune information n est portee par la seule couleur non plus, ce que
+          le systeme de design exige.
+        */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-2)' }}>
-          <Pastille ton="attention">
-            <Icone nom={Lock} taille={16} />
-            <span style={{ marginLeft: 'var(--espace-1)' }}>Accès requis</span>
-          </Pastille>
+          <Pastille ton="attention">Accès requis</Pastille>
         </div>
 
         <h1
