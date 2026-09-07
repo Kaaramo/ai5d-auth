@@ -1,19 +1,53 @@
 /**
  * La surface publique du SDK AI5D.
  *
- * Elle est volontairement minuscule au Sprint 00. Sa raison d etre n est pas son contenu,
- * c est sa frontiere : le premier consommateur figera ce qu elle expose, et il sera alors
- * trop tard pour en decider.
+ * ── CE QU ELLE EST, ET CE QU ELLE NE SERA JAMAIS ────────────────────────────
+ * Elle donne a un produit de quoi savoir QUI est devant lui, dans QUELLE organisation il
+ * travaille, et A QUOI il a droit. Rien d autre.
  *
- * `requireSession()`, le middleware et les composants React arrivent au sprint 06.
+ * Elle n expose ni `signIn`, ni `signUp`, ni `signOut`, et ce n est pas un oubli : le
+ * portail les porte. Un SDK qui les exposerait inviterait chaque produit a dessiner son
+ * propre formulaire de connexion, et le PRD 2.3 dit pourquoi c est grave — « une rupture
+ * graphique au moment ou l on saisit un mot de passe evoque l hameconnage ».
  *
- * `getProductAccess()` arrive au sprint 05, et NON au sprint 04 comme cette ligne
- * l annoncait. Toutes les routes de lecture d acces du PRD 9.1 sont authentifiees PAR CLE
- * PRODUIT, et les cles arrivent la-bas : exposer une lecture d acces sur la seule foi du
- * cookie de session aurait ouvert une surface que le sprint suivant devrait refermer.
+ * Elle n expose pas non plus de lecture d un TIERS : lire les droits de quelqu un d autre
+ * que le visiteur demande une cle produit, et passe par `/api/v1`. Deux surfaces, deux
+ * authentifications.
  *
- * Le sprint 04 livre la resolution, testee, consommee par ses deux ecrans. Elle vit dans
- * `apps/compte/lib/acces.ts`, du cote du portail, ou une session la borne.
+ * ── ELLE SE FIGE AVEC SON PREMIER CONSOMMATEUR ──────────────────────────────
+ * Chaque produit qui l adopte fige ses signatures. Il vaut mieux exposer trop peu et
+ * ajouter, qu exposer trop et devoir retirer.
+ *
+ * ── LA FRONTIERE, ET OU ELLE VIT DESORMAIS ──────────────────────────────────
+ * Le paquet ne connait qu une seule route, `GET /api/session`, dont le PORTAIL decide la
+ * forme. Il ne reparse plus la charge de la bibliotheque qui authentifie : celle-la
+ * appartient a un tiers, et une montee de version qui la changerait aurait deconnecte tous
+ * les produits sans faire echouer un seul test. Sprint 06, ecart 0.2.
  */
-export { getSession } from './server';
-export type { Ai5dSession, Ai5dUser, StatutUtilisateur } from './types';
+
+export {
+  getActiveOrganization,
+  getProductAccess,
+  getSession,
+  requireProductAccess,
+  requireRole,
+  requireSession,
+} from './server';
+
+export { urlPortail } from './url';
+
+export { AccesRefuseErreur, RoleRefuseErreur } from './erreurs';
+
+/** Hors production uniquement, pour prouver le cache par requete. Ne decide de rien. */
+export { appelsEffectues } from './transport';
+
+export type {
+  AccesProduit,
+  Ai5dSession,
+  Ai5dUser,
+  OrganisationActive,
+  RoleOrganisation,
+  SourceAcces,
+  StatutAcces,
+  StatutUtilisateur,
+} from './types';
