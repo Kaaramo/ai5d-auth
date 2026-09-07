@@ -1,4 +1,5 @@
 import { baseCompte } from './url';
+import { PortailIndisponibleErreur } from './erreurs';
 import type {
   AccesProduit,
   Ai5dSession,
@@ -44,6 +45,19 @@ const CHEMIN = '/api/session';
  */
 let appels = 0;
 
+/**
+ * Le compteur est INERTE en production, et pas seulement par convention.
+ *
+ * La premiere ecriture disait « hors production uniquement » en commentaire, et rien ne
+ * l appliquait : le compteur et son export vivaient dans le paquet de production, dans le
+ * fichier voisin de celui qui explique longuement qu une memoire de module ne doit jamais
+ * survivre a la requete. Le prochain qui aurait ajoute « juste un dernier slug appele » a
+ * cote n aurait enfreint aucune regle ecrite.
+ *
+ * Constat de la revue du gardien des frontieres, sprint 06.
+ */
+const COMPTE = process.env.NODE_ENV !== 'production';
+
 export function appelsEffectues(): number {
   return appels;
 }
@@ -55,7 +69,7 @@ export async function appelerPortail(
   const url = new URL(CHEMIN, `${baseCompte()}/`);
   if (produit !== null) url.searchParams.set('produit', produit);
 
-  appels += 1;
+  if (COMPTE) appels += 1;
 
   let reponse: Response;
   try {
@@ -68,21 +82,38 @@ export async function appelerPortail(
     /*
       LE PORTAIL EST INJOIGNABLE.
 
-      On rend `null`, donc « pas connecte », et non une levee. Le motif : une panne du
-      portail doit degrader les produits vers l anonyme, pas les faire tomber en erreur 500.
-      Le visiteur voit alors un ecran de connexion, ce qui est FAUX mais recuperable ; une
-      page d erreur ne l est pas, et il n a rien a y faire.
+      On LEVE, on ne rend pas `null`. La premiere ecriture rendait `null`, donc « pas
+      connecte », et le raisonnement paraissait bon : degrader vers l anonyme plutot que de
+      tomber en erreur.
+
+      Il produisait une BOUCLE. `requireSession()` redirigeait vers `/connexion`, le
+      middleware du portail voyait un cookie valide et renvoyait vers le produit, qui
+      redemandait, qui reprenait la meme panne. La personne voyait
+      `ERR_TOO_MANY_REDIRECTS`, jamais un ecran de connexion.
+
+      Une indisponibilite n est pas une absence de session, et les confondre coute plus
+      cher que de le dire. Constat de la revue du gardien, sprint 06.
     */
-    return null;
+    throw new PortailIndisponibleErreur(null);
   }
 
-  if (!reponse.ok) return null;
+  /*
+    401 ET 403 SEULS VEULENT DIRE « PAS CONNECTE ».
+
+    La route rend d ailleurs 200 avec `user: null` dans ce cas ; ces deux codes sont un
+    filet pour un mandataire qui s interposerait. Tout le reste — 429, 5xx, un 404 qui
+    dirait que la route a disparu — est une indisponibilite.
+  */
+  if (!reponse.ok) {
+    if (reponse.status === 401 || reponse.status === 403) return null;
+    throw new PortailIndisponibleErreur(reponse.status);
+  }
 
   try {
     return versSession(await reponse.json());
   } catch {
-    // Une charge illisible se traite comme une absence de session, pour la meme raison.
-    return null;
+    // Une charge illisible vient du portail, pas du visiteur : c est une panne.
+    throw new PortailIndisponibleErreur(reponse.status);
   }
 }
 
@@ -165,8 +196,7 @@ function versAcces(valeur: unknown): AccesProduit | null {
     source: (a.source as SourceAcces | undefined) ?? 'MANUAL',
     plan: texteOuNull(a.plan),
     sieges: typeof a.seats === 'number' ? a.seats : null,
-    referenceExterne: texteOuNull(a.externalRef),
-    metadonnees: a.metadata ?? null,
+    // Ni `externalRef`, ni `metadata` : la route de session ne les porte pas. Voir `types.ts`.
     accordeLe: new Date(String(a.grantedAt)),
     expireLe: expiresAt === null ? null : new Date(expiresAt),
   };

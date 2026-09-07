@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useSession } from './hooks';
-import { urlPortail } from '../url';
+import { usePortail } from './contexte';
+import { lienPortail } from './lien';
 
 /**
  * Le menu de compte, dans l en-tete d un produit.
@@ -33,6 +34,8 @@ function initiales(nom: string | null, adresse: string): string {
 
 export function UserButton() {
   const session = useSession();
+  // Du contexte, jamais de `process.env` : Next ne l inline pas dans le navigateur.
+  const portail = usePortail();
   const [ouvert, setOuvert] = useState(false);
 
   /*
@@ -56,9 +59,9 @@ export function UserButton() {
   const retour = typeof window === 'undefined' ? undefined : window.location.href;
 
   const entrees: Array<{ libelle: string; url: string }> = [
-    { libelle: 'Mon compte', url: urlPortail('/accueil') },
-    { libelle: 'Mes accès', url: urlPortail('/acces') },
-    { libelle: 'Se déconnecter', url: urlPortail('/deconnexion', retour) },
+    { libelle: 'Mon compte', url: lienPortail(portail, '/accueil') },
+    { libelle: 'Mes accès', url: lienPortail(portail, '/acces') },
+    { libelle: 'Se déconnecter', url: lienPortail(portail, '/deconnexion', retour) },
   ];
 
   return (

@@ -1,7 +1,8 @@
 'use client';
 
 import { useActiveOrganization } from './hooks';
-import { urlPortail } from '../url';
+import { usePortail } from './contexte';
+import { lienPortail } from './lien';
 
 /**
  * Le contexte actif : l organisation dans laquelle on travaille.
@@ -33,6 +34,8 @@ const LIBELLE_ROLE: Record<string, string> = {
 
 export function OrganizationSwitcher() {
   const organisation = useActiveOrganization();
+  // Du contexte, jamais de `process.env` : Next ne l inline pas dans le navigateur.
+  const portail = usePortail();
 
   if (organisation === null) return null;
 
@@ -71,7 +74,7 @@ export function OrganizationSwitcher() {
         trop qu un appel reseau par page.
       */}
       <a
-        href={urlPortail('/organisations', retour)}
+        href={lienPortail(portail, '/organisations', retour)}
         style={{
           color: 'var(--action)',
           fontSize: 'var(--taille-xs)',

@@ -31,7 +31,7 @@ function contexte(nom: string): Ai5dSession | null {
     }
     return null;
   }
-  return valeur;
+  return valeur.session;
 }
 
 export function useSession(): Ai5dSession | null {

@@ -29,6 +29,30 @@ import { urlPortail } from './url';
 
 const COOKIE = 'ai5d.session_token';
 
+/**
+ * L en-tete par lequel le middleware transmet l URL REELLE de la requete aux pages.
+ *
+ * ── POURQUOI IL EXISTE ──────────────────────────────────────────────────────
+ * `requireSession()` doit construire une destination de retour. Sans cet en-tete, elle la
+ * fabriquait en concatenant `x-forwarded-host`, `x-forwarded-proto` et `x-matched-path`,
+ * trois valeurs qu un client peut poser et qu aucune n est validee.
+ *
+ * Deux consequences, l une de securite et l autre fonctionnelle. Une requete portant
+ * `x-forwarded-host: attaquant.fr` produisait `?redirect=https://attaquant.fr/…` : le
+ * portail le refuse aujourd hui, mais un SDK ne doit pas produire une valeur dont la surete
+ * depend de la validation d autrui. Et `x-matched-path` porte le chemin APPARIE, donc
+ * `/lecon/[id]` plutot que `/lecon/12` : la promesse « on vous ramene ou vous etiez »
+ * ramenait en realite sur une URL a crochets.
+ *
+ * Constat de la revue du gardien des frontieres, sprint 06.
+ *
+ * ── POURQUOI IL EST FIABLE, LUI ─────────────────────────────────────────────
+ * `requete.nextUrl` est ce que Next a resolu, pas ce que le client a envoye. Et le
+ * middleware ECRASE l en-tete a chaque requete : une valeur posee par un client ne
+ * survit pas.
+ */
+const ENTETE_URL = 'x-ai5d-url';
+
 /** `__Secure-` apparait en HTTPS. Les deux noms existent selon l environnement. */
 function aUnCookie(requete: NextRequest): boolean {
   return requete.cookies.has(COOKIE) || requete.cookies.has(`__Secure-${COOKIE}`);
@@ -48,10 +72,21 @@ export function creerAi5dMiddleware(options: { publiques?: string[] } = {}) {
     const chemin = requete.nextUrl.pathname;
 
     if (publiques.some((p) => chemin === p || chemin.startsWith(`${p}/`))) {
-      return NextResponse.next();
+      const entetesPubliques = new Headers(requete.headers);
+      entetesPubliques.set(ENTETE_URL, requete.nextUrl.toString());
+      return NextResponse.next({ request: { headers: entetesPubliques } });
     }
 
-    if (aUnCookie(requete)) return NextResponse.next();
+    /*
+      L URL reelle, transmise aux pages, et ECRASEE a chaque requete.
+
+      L ecrasement est la moitie qui compte : sans lui, un client posant lui-meme
+      `x-ai5d-url` choisirait sa propre destination de retour.
+    */
+    const entetes = new Headers(requete.headers);
+    entetes.set(ENTETE_URL, requete.nextUrl.toString());
+
+    if (aUnCookie(requete)) return NextResponse.next({ request: { headers: entetes } });
 
     /*
       La destination de retour vient de `nextUrl`, JAMAIS de `requete.url`.
@@ -75,3 +110,6 @@ export function creerAi5dMiddleware(options: { publiques?: string[] } = {}) {
  * pose sa variable, avec un message que Next noierait dans sa propre pile.
  */
 export const ai5dAuthMiddleware = creerAi5dMiddleware();
+
+/** Le nom de l en-tete, lu par `server.ts`. Declare ici, ou il est pose. */
+export { ENTETE_URL };

@@ -9,7 +9,16 @@
  * `<Ai5dProvider>`, et les trois composants lisent les crochets.
  */
 
-export { Ai5dProvider, ContexteAi5d } from './contexte';
+/*
+  `Ai5dProvider` N EST PAS EXPORTE ICI, ET C EST VOULU.
+
+  Il s execute au SERVEUR : il lit l adresse du portail la ou elle existe, puis la transmet.
+  L exposer dans le point d entree client inviterait a le poser dans un composant client, ou
+  la variable vaut `undefined` — c est exactement le defaut que ce decoupage corrige.
+
+  Il vit dans `@ai5d/auth`, avec les fonctions serveur.
+*/
+export { ContexteAi5d } from './contexte';
 export { useActiveOrganization, useProductAccess, useSession } from './hooks';
 
 export { AccesRefuse } from './AccesRefuse';

@@ -2,7 +2,8 @@
 
 import { Bouton, Carte, Pastille } from '@ai5d/design-system/composants';
 import { useActiveOrganization, useSession } from './hooks';
-import { urlPortail } from '../url';
+import { usePortail } from './contexte';
+import { lienPortail } from './lien';
 import type { AccesProduit } from '../types';
 
 /**
@@ -66,6 +67,14 @@ function corps(produit: string, organisation: string | null, echu: AccesProduit 
 export function AccesRefuse({ produit, echu, organisation }: ProprietesAccesRefuse) {
   const session = useSession();
   const organisationActive = useActiveOrganization();
+  /*
+    L adresse du portail vient du CONTEXTE, jamais de `process.env`.
+
+    Next ne remplace dans le paquet du navigateur que les variables prefixees
+    `NEXT_PUBLIC_` : lire `AI5D_ACCOUNT_URL` ici levait a l hydratation. Le fournisseur, qui
+    s execute au serveur, la transmet.
+  */
+  const portail = usePortail();
 
   const nomOrganisation = organisation ?? organisationActive?.nom ?? null;
   const dernierEchu = echu ?? session?.echu ?? null;
@@ -117,7 +126,10 @@ export function AccesRefuse({ produit, echu, organisation }: ProprietesAccesRefu
             Un lien d action se fait par `window.location.assign`, comme dans le portail :
             `Bouton` rend un `<button>` et n accepte pas de `href`. Voir `LienInvalide.tsx`.
           */}
-          <Bouton type="button" onClick={() => window.location.assign(urlPortail('/acces'))}>
+          <Bouton
+            type="button"
+            onClick={() => window.location.assign(lienPortail(portail, '/acces'))}
+          >
             Voir mes accès
           </Bouton>
         </div>

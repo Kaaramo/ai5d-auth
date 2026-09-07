@@ -76,8 +76,19 @@ export interface AccesProduit {
   plan: string | null;
   /** Declaratif. Stocke et rendu, jamais applique. Regle R20. */
   sieges: number | null;
-  referenceExterne: string | null;
-  metadonnees: unknown;
+  /*
+    NI `referenceExterne`, NI `metadonnees` ICI, ET C EST UNE DECISION DE SECURITE.
+
+    La route de session n identifie pas son appelant : sans cle produit, n importe quel
+    produit peut demander les droits d un AUTRE produit avec le cookie d un de ses propres
+    visiteurs. Ces deux champs portent des references d abonnement et des metadonnees
+    commerciales qu un produit a ecrites sur ses clients, et aucun ecran du portail ne les
+    affiche : les faire voyager ici aurait ouvert une lecture que la personne elle-meme n a
+    pas.
+
+    Ils restent servis par `GET /api/v1/entitlements`, ou l appelant est identifie par sa
+    cle et cloisonne a son produit. Constat de la revue du gardien, sprint 06.
+  */
   accordeLe: Date;
   expireLe: Date | null;
 }

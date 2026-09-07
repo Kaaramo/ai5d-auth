@@ -1,7 +1,7 @@
 import { cookiesRequete, entetesRequete, rediriger } from './requete';
 import { lireSession } from './cache';
 import { urlPortail } from './url';
-import { AccesRefuseErreur, RoleRefuseErreur } from './erreurs';
+import { AccesRefuseErreur, PortailIndisponibleErreur, RoleRefuseErreur } from './erreurs';
 import type { AccesProduit, Ai5dSession, OrganisationActive, RoleOrganisation } from './types';
 
 /**
@@ -43,28 +43,48 @@ async function cookieCourant(): Promise<string | null> {
 export async function getSession(cookieExplicite?: string): Promise<Ai5dSession | null> {
   const cookie = cookieExplicite ?? (await cookieCourant());
   if (cookie === null || cookie.length === 0) return null;
-  return lireSession(cookie, null);
+
+  /*
+    ELLE AVALE L INDISPONIBILITE, ET `requireSession` NON.
+
+    `getSession()` est appelee par les gabarits et les pages publiques, qui doivent
+    s afficher meme quand le portail tousse : une panne y degrade vers l anonyme, ce qui
+    est le bon comportement pour un en-tete ou un menu de compte.
+
+    `requireSession()`, elle, laisse monter l erreur : rediriger vers la connexion pendant
+    une panne fabrique une BOUCLE, puisque le portail voit un cookie valide et renvoie
+    aussitot. Voir `PortailIndisponibleErreur`.
+  */
+  try {
+    return await lireSession(cookie, null);
+  } catch (erreur) {
+    if (erreur instanceof PortailIndisponibleErreur) return null;
+    throw erreur;
+  }
 }
 
 /**
  * L URL de la page courante, pour y revenir apres connexion.
  *
- * ── ELLE SE CONSTRUIT DES EN-TETES, JAMAIS D UN PARAMETRE DE REQUETE ────────
- * Lire `?redirect=` ici offrirait au visiteur le choix de sa propre destination de retour.
- * Le portail la refuserait de toute facon si elle sortait du domaine, `destinationSure()`,
- * mais un SDK ne doit pas produire une valeur dont la surete depend de la validation
- * d autrui : le jour ou un autre consommateur la lit sans valider, elle devient une
- * redirection ouverte.
+ * ── ELLE VIENT DU MIDDLEWARE, ET DE NULLE PART AILLEURS ─────────────────────
+ * Le middleware pose `x-ai5d-url` a partir de `requete.nextUrl`, c est-a-dire de ce que
+ * Next a resolu, et il ECRASE l en-tete a chaque requete.
  *
- * `x-forwarded-host` prime sur `host` : derriere un mandataire, `host` porte l adresse
- * interne, et le retour pointerait une machine que personne ne peut joindre.
+ * La premiere ecriture la fabriquait en concatenant `x-forwarded-host`,
+ * `x-forwarded-proto` et `x-matched-path` : trois valeurs qu un client peut poser, dont
+ * aucune n etait validee, et dont la derniere porte le chemin APPARIE — donc `/lecon/[id]`
+ * au lieu de `/lecon/12`. La promesse « on vous ramene ou vous etiez » etait fausse dans le
+ * cas courant, et ouvrait une redirection au client dans le cas hostile.
+ *
+ * ── SANS L EN-TETE, ON NE MET AUCUN RETOUR ──────────────────────────────────
+ * Le cas se produit quand le matcher du middleware ne couvre pas la page. On envoie alors
+ * vers la connexion SANS `?redirect=` : la personne arrive sur l accueil de son compte
+ * plutot que sur la page demandee, ce qui est un inconfort. Deviner une URL serait pire :
+ * ce serait affirmer une destination qu on ne connait pas.
  */
-async function urlCourante(): Promise<string> {
+async function urlCourante(): Promise<string | undefined> {
   const e = await entetesRequete();
-  const hote = e.get('x-forwarded-host') ?? e.get('host') ?? '';
-  const protocole = e.get('x-forwarded-proto') ?? 'https';
-  const chemin = e.get('x-invoke-path') ?? e.get('x-matched-path') ?? '/';
-  return `${protocole}://${hote}${chemin}`;
+  return e.get('x-ai5d-url') ?? undefined;
 }
 
 /**
@@ -75,7 +95,20 @@ async function urlCourante(): Promise<string> {
  * route uniquement par son matcher serait ouvert a quiconque pose un cookie du bon nom.
  */
 export async function requireSession(): Promise<Ai5dSession> {
-  const session = await getSession();
+  const cookie = await cookieCourant();
+  if (cookie === null || cookie.length === 0) {
+    rediriger(urlPortail('/connexion', await urlCourante()));
+  }
+
+  /*
+    L INDISPONIBILITE MONTE, ELLE NE REDIRIGE PAS.
+
+    Le cookie est present : la personne EST connectee, et c est le portail qui ne repond
+    pas. L envoyer sur `/connexion` la ferait rebondir indefiniment, le portail voyant une
+    session valide et renvoyant ici. Une page d erreur est desagreable ; une boucle est
+    inutilisable, et elle ne dit meme pas ce qui se passe.
+  */
+  const session = await lireSession(cookie, null);
   if (session === null) rediriger(urlPortail('/connexion', await urlCourante()));
   return session;
 }
@@ -91,6 +124,14 @@ export async function requireSession(): Promise<Ai5dSession> {
 export async function getProductAccess(slug: string): Promise<AccesProduit[]> {
   const cookie = await cookieCourant();
   if (cookie === null) return [];
+
+  /*
+    ELLE LAISSE MONTER L INDISPONIBILITE, contrairement a `getSession`.
+
+    Rendre `[]` pendant une panne du portail dirait « vous n avez pas acces » a des clients
+    qui paient, et le produit refermerait sa porte sans que rien ne signale la cause. Un
+    tableau vide doit vouloir dire « aucun droit », et rien d autre.
+  */
   const session = await lireSession(cookie, slug);
   return session?.acces ?? [];
 }

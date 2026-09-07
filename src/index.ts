@@ -36,6 +36,15 @@ export {
 
 export { urlPortail } from './url';
 
+/**
+ * Le fournisseur, a poser dans le gabarit racine. Il s execute au SERVEUR.
+ *
+ * Il est ici et non dans `@ai5d/auth/react` parce qu il lit l adresse du portail, que seul
+ * le serveur connait : Next ne remplace dans le navigateur que les variables prefixees
+ * `NEXT_PUBLIC_`.
+ */
+export { Ai5dProvider } from './provider';
+
 export { AccesRefuseErreur, RoleRefuseErreur } from './erreurs';
 
 /** Hors production uniquement, pour prouver le cache par requete. Ne decide de rien. */
