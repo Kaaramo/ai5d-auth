@@ -15,7 +15,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@ai5d/design-system": "github:Kaaramo/ai5d-digital-design-system#v0.6.3",
+    "@ai5d/design-system": "github:Kaaramo/ai5d-digital-design-system#v0.7.0",
     "@types/react": "^19.0.2",
     "next": "^16.2.12",
     "react": "^19.0.0",
