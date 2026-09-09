@@ -37,6 +37,20 @@ import type {
 const CHEMIN = '/api/session';
 
 /**
+ * Cinq secondes, et le chiffre est raisonne.
+ *
+ * Le portail repond a `/api/session` en dizaines de millisecondes : une lecture de session
+ * et, au plus, une resolution d acces. Cinq secondes couvrent trois cas qui ne sont pas des
+ * pannes — un demarrage a froid de fonction, une latence transatlantique, un pic de charge
+ * — et refusent le quatrieme, qui en est une.
+ *
+ * Plus court punirait un demarrage a froid legitime. Plus long ne rend service a personne :
+ * une page qui met plus de cinq secondes a s afficher est deja perdue pour son visiteur, et
+ * l attente coute alors une fonction bloquee cote produit plutot qu une page rendue.
+ */
+const DELAI_MS = 5_000;
+
+/**
  * Le nombre d appels effectues depuis le demarrage du processus.
  *
  * HORS PRODUCTION UNIQUEMENT, et jamais pour decider quoi que ce soit : il sert a la demo
@@ -77,6 +91,24 @@ export async function appelerPortail(
       headers: { cookie },
       // Une session ne se met JAMAIS en cache : une reponse rejouee vaut une session volee.
       cache: 'no-store',
+      /*
+        LE DELAI MAXIMUM, ET IL MANQUAIT.
+
+        Constat du sprint de consolidation, 9 septembre 2026.
+
+        `PortailIndisponibleErreur` couvrait le REFUS de connexion, jamais le SILENCE. Un
+        portail qui accepte la connexion et ne repond pas — pool Neon sature, fonction
+        froide, incident reseau — suspendait donc le rendu jusqu au delai par defaut de la
+        couche HTTP de Node, puis jusqu au plafond de duree de la fonction du produit.
+
+        Cet appel est fait a CHAQUE requete de CHAQUE visiteur de CHAQUE produit AI5D. Sans
+        borne, un portail lent ne degrade pas le portail : il fait tomber tout l ecosysteme,
+        ce qui est exactement la promesse inverse de celle de ce paquet.
+
+        La file de webhooks bornait deja ses appels sortants a dix secondes depuis le
+        sprint 05. Le raisonnement etait juste ; il n avait pas ete applique ici.
+      */
+      signal: AbortSignal.timeout(DELAI_MS),
     });
   } catch {
     /*
