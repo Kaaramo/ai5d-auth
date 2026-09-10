@@ -15,7 +15,12 @@
     "./middleware": "./src/middleware.ts",
     "./react": "./src/react/index.ts"
   },
-  "files": ["src", "README.md", "CHANGELOG.md", "LICENSE"],
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
@@ -47,6 +52,8 @@
     "vitest": "^2.1.8"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

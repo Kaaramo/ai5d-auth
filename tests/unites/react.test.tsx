@@ -3,11 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { FournisseurAi5d } from '../../src/react/contexte';
-import {
-  useActiveOrganization,
-  useProductAccess,
-  useSession,
-} from '../../src/react/hooks';
+import { useActiveOrganization, useProductAccess, useSession } from '../../src/react/hooks';
 import { AccesRefuse } from '../../src/react/AccesRefuse';
 import { UserButton } from '../../src/react/UserButton';
 import { OrganizationSwitcher } from '../../src/react/OrganizationSwitcher';

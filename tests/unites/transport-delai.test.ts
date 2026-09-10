@@ -39,8 +39,7 @@ describe('l appel au portail est borne', () => {
       Le paquet n a qu un point de sortie reseau, et c est ce qui rend cette garde suffisante.
       Un second `fetch` ajoute ailleurs echapperait a la borne sans que rien ne le signale.
     */
-    const tous =
-      readFileSync('src/transport.ts', 'utf8').match(/[^a-z]fetch\(/g) ?? [];
+    const tous = readFileSync('src/transport.ts', 'utf8').match(/[^a-z]fetch\(/g) ?? [];
     expect(tous.length).toBe(1);
   });
 });
