@@ -46,6 +46,10 @@ Ils se compilent sous vos réglages. Next 16 et React 19 sont requis.
 AI5D_ACCOUNT_URL=https://compte.ai5d.technology
 ```
 
+Elle doit être en `https` hors de votre poste : le SDK envoie à cette adresse le cookie de
+session de chaque visiteur. Une coquille ou un `http://` l'enverrait ailleurs, ou en clair, sans
+la moindre erreur.
+
 **Le fournisseur**, dans votre gabarit racine. Il s'exécute au serveur :
 
 ```tsx
@@ -64,11 +68,13 @@ export default async function Layout({ children }: { children: React.ReactNode }
 }
 ```
 
-**Une page protégée**, et le middleware qui évite de la charger pour rien :
+**Une page protégée**, et le middleware qui évite de la charger pour rien. Donnez-lui toujours
+un `matcher` : sans lui, il s'applique à toutes vos routes, pages publiques comprises.
 
 ```ts
 // middleware.ts
 export { ai5dAuthMiddleware as middleware } from '@ai5d/auth/middleware';
+export const config = { matcher: ['/espace/:path*'] };
 ```
 
 ```tsx
@@ -95,10 +101,15 @@ dans chaque produit apprendrait à vos visiteurs à saisir leur mot de passe sur
 se ressemblent sans être les mêmes. C'est ainsi que se préparent les hameçonnages. La connexion
 vit sur AI5D Compte, et seulement là.
 
-**Une panne de Compte n'est pas une déconnexion.** Quand Compte ne répond pas, le SDK lève
-`PortailIndisponibleErreur`. Une page protégée doit alors dire que le service est
+**Une panne de Compte n'est pas une déconnexion.** Quand Compte ne répond pas, les fonctions
+qui protègent lèvent `PortailIndisponibleErreur` : `requireSession`, `getProductAccess`,
+`requireProductAccess` et `requireRole`. Une page protégée doit alors dire que le service est
 momentanément indisponible, et surtout ne pas renvoyer vers la connexion : pendant une panne,
 cela fabrique une boucle.
+
+`getSession` et `getActiveOrganization`, elles, rendent `null` pendant une panne, pour qu'une
+page publique se rende en anonyme. N'en faites donc jamais une garde : un
+`if (!(await getSession())) redirect(...)` reconstruirait la boucle que l'erreur évite.
 
 ```ts
 import { PortailIndisponibleErreur } from '@ai5d/auth';
@@ -124,8 +135,12 @@ Vous lisez ici le nom du cookie de session, la route `/api/session` et la forme 
 Rien de cela n'ouvre quoi que ce soit. Le cookie est `HttpOnly` et posé par AI5D Compte : le
 connaître ne permet ni de le lire ni de le fabriquer. La route ne rend que les droits du
 porteur du cookie, refuse tout identifiant en paramètre et ignore toute clé. Un cookie inventé
-passe le middleware, qui ne valide rien, puis échoue à `requireSession()`, qui renvoie vers la
-connexion.
+passe le middleware, qui ne valide rien, puis échoue à `requireSession()` : aucune page protégée
+ne s'ouvre.
+
+Ce que cela vous demande, en retour : le serveur de votre produit reçoit le cookie complet de
+chaque visiteur, puisqu'il est posé sur le domaine parent. **Ne journalisez jamais l'en-tête
+`Cookie`**, ni les en-têtes d'une requête en entier.
 
 Ce dépôt ne contient aucune clé, aucune chaîne de connexion, aucun fichier d'environnement, et
 une garde le vérifie à chaque exécution des tests.

@@ -5,7 +5,12 @@ on:
   push:
     branches: [main]
 
-# Aucun jeton : le depot du SDK et celui du systeme de design sont publics.
+# Aucun jeton : le depot du SDK et celui du systeme de design sont publics. Le jeton que
+# GitHub fournit au travail est borne a la lecture, explicitement : un depot public recoit des
+# demandes de fusion de n importe qui.
+permissions:
+  contents: read
+
 jobs:
   qualite:
     runs-on: ubuntu-latest
