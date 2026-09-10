@@ -45,7 +45,15 @@ export { urlPortail } from './url';
  */
 export { Ai5dProvider } from './provider';
 
-export { AccesRefuseErreur, RoleRefuseErreur } from './erreurs';
+/**
+ * `PortailIndisponibleErreur` est exportee depuis la 1.0.0 (sprint 16, ecart 0.15).
+ *
+ * Elle montait deja jusqu au produit par `requireSession()` et `getProductAccess()`, sans qu il
+ * puisse la reconnaitre autrement que par son nom. Une page protegee la traite comme une
+ * INDISPONIBILITE, jamais comme une deconnexion : renvoyer vers la connexion pendant une panne
+ * de Compte fabrique une boucle. Ajouter un export n est pas un changement incompatible.
+ */
+export { AccesRefuseErreur, PortailIndisponibleErreur, RoleRefuseErreur } from './erreurs';
 
 /** Hors production uniquement, pour prouver le cache par requete. Ne decide de rien. */
 export { appelsEffectues } from './transport';
