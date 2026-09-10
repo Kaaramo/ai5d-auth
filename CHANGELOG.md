@@ -3,6 +3,16 @@
 Chaque version porte une étiquette annotée `vX.Y.Z`. Épinglez toujours une étiquette, jamais une
 branche. La règle de ce qui est majeur, mineur ou correctif est dans le README.
 
+## 1.0.1 : 10 septembre 2026
+
+Correctif. Aucune signature ne change.
+
+- `OrganizationSwitcher` ne provoque plus d'erreur d'hydratation. Il lisait l'adresse de la page
+  pendant son rendu : le serveur écrivait un lien « Changer d'organisation » sans adresse de
+  retour, le navigateur un lien avec, et React le signalait sur chaque page qui affiche le
+  composant. L'adresse de retour est désormais ajoutée juste après l'hydratation. Le lien et son
+  retour sont inchangés pour la personne qui clique.
+
 ## 1.0.0 : 10 septembre 2026
 
 Première version autonome.

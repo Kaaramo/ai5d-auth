@@ -20,7 +20,7 @@ votre visiteur. Ces deux choses passent par AI5D Compte et par son API à clé.
 **Installez toujours les deux paquets ensemble, par étiquette, dans une même commande.**
 
 ```bash
-pnpm add github:Kaaramo/ai5d-auth#v1.0.0 github:Kaaramo/ai5d-digital-design-system#v0.7.0
+pnpm add github:Kaaramo/ai5d-auth#v1.0.1 github:Kaaramo/ai5d-digital-design-system#v0.7.0
 ```
 
 Le SDK déclare le système de design comme dépendance de pair. Si votre produit ne l'installe

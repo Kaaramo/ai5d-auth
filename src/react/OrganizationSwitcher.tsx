@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useActiveOrganization } from './hooks';
 import { usePortail } from './contexte';
 import { lienPortail } from './lien';
@@ -37,13 +38,25 @@ export function OrganizationSwitcher() {
   // Du contexte, jamais de `process.env` : Next ne l inline pas dans le navigateur.
   const portail = usePortail();
 
-  if (organisation === null) return null;
-
   /*
-    Le retour est lu derriere une garde : ce composant est client, mais il est rendu une
-    premiere fois au serveur, ou `window` n existe pas.
+    LE RETOUR N EST LU QU APRES L HYDRATATION. Version 1.0.1.
+
+    Le lire pendant le rendu, derriere une garde sur `window`, donnait deux liens differents :
+    sans `redirect` au serveur, ou `window` n existe pas, et avec au premier rendu du
+    navigateur. React signalait une erreur d hydratation sur chaque page qui affiche ce
+    composant. La recette du sprint 16 l a vue au navigateur ; celle du sprint 06 n en avait
+    ouvert aucun, et jsdom a toujours un `window`, donc aucun test ne pouvait la voir.
+
+    Le premier rendu du navigateur ecrit donc le meme lien que le serveur, et l effet ajoute le
+    retour juste apres. Les crochets precedent le retour anticipe : leur ordre ne doit jamais
+    dependre d une condition.
   */
-  const retour = typeof window === 'undefined' ? undefined : window.location.href;
+  const [retour, setRetour] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    setRetour(window.location.href);
+  }, []);
+
+  if (organisation === null) return null;
 
   return (
     <div
