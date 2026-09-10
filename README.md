@@ -125,9 +125,10 @@ Le versionnement est sémantique, et un doute se tranche vers le niveau supérie
 | Mineur    | Ajouter un export, un champ facultatif à un type rendu, une option facultative                                                                                                                         |
 | Correctif | Corriger un comportement sans toucher la surface, un commentaire, un test                                                                                                                              |
 
-**Épinglez toujours une étiquette, jamais une branche.** Votre `pnpm-lock.yaml` enregistre le
-commit résolu, pas l'étiquette : une réinstallation verrouillée installe toujours le code que
-vous avez testé. Pour monter de version, changez l'étiquette, réinstallez, commitez le verrou.
+**Épinglez toujours une étiquette, jamais une branche.** Votre `pnpm-lock.yaml` n'enregistre pas
+le nom de l'étiquette mais l'empreinte de l'objet étiquette annotée, qui désigne un seul commit
+pour toujours : une réinstallation verrouillée installe toujours le code que vous avez testé, ou
+échoue. Pour monter de version, changez l'étiquette, réinstallez, commitez le verrou.
 
 ## Sécurité : pourquoi ce dépôt peut être public
 
