@@ -202,3 +202,132 @@ describe('la lecture des droits ne vise que le visiteur', () => {
     expect(serveur).not.toContain('organizationId');
   });
 });
+
+describe('les angles morts que la revue du gardien a trouves avant la publication', () => {
+  /*
+    Revue du 10 septembre 2026, avant la premiere poussee du depot public.
+
+    Les gardes au-dessus ont ete deplacees sans changement, et elles ne sont pas vides : chacune
+    rougit sur son cas temoin. Mais cinq mutations les traversaient toutes au vert :
+    better-auth en `optionalDependencies`, `requireSession as signIn` dans un bloc d export
+    multiligne, une URL absolue vers `/api/auth/`, un `import()` dynamique, un fichier `.js`
+    dans `src`.
+
+    Les gardes deplacees restent telles quelles, pour que le commit du deplacement prouve
+    toujours qu il etait neutre. Celles-ci les completent, et chacune a ete vue echouer sur sa
+    mutation avant d etre commitee.
+  */
+
+  /**
+   * Retire les commentaires SANS manger la fin d une chaine qui porte `https://`.
+   *
+   * La fonction `declarations` du haut de fichier retire tout ce qui suit `//` : une adresse
+   * absolue ecrite en dur y perdait son chemin, et la garde des routes ne la voyait plus.
+   */
+  function sansCommentaires(source: string): string {
+    return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+  }
+
+  /** Les noms que la surface expose, blocs multilignes et alias `as` compris. */
+  function nomsExportes(source: string): Set<string> {
+    const noms = new Set<string>();
+    for (const bloc of source.matchAll(/export\s+(?:type\s+)?\{([\s\S]*?)\}/g)) {
+      for (const morceau of (bloc[1] ?? '').split(',')) {
+        const nom = morceau
+          .trim()
+          .split(/\s+as\s+/)
+          .pop()
+          ?.replace(/^type\s+/, '')
+          .trim();
+        if (nom) noms.add(nom);
+      }
+    }
+    for (const declaration of source.matchAll(
+      /export\s+(?:default\s+)?(?:async\s+)?(?:function\*?|const|let|var|class|interface|type|enum)\s+(\w+)/g,
+    )) {
+      if (declaration[1]) noms.add(declaration[1]);
+    }
+    return noms;
+  }
+
+  it('aucun champ du manifeste n installe quoi que ce soit', () => {
+    // Un consommateur installe aussi les dependances optionnelles et embarquees : le moteur
+    // entrerait chez chaque produit par `optionalDependencies` sans que `dependencies` bouge.
+    const brut = readFileSync('package.json', 'utf8');
+    const manifeste = JSON.parse(brut) as Record<string, unknown>;
+    for (const champ of [
+      'dependencies',
+      'optionalDependencies',
+      'bundleDependencies',
+      'bundledDependencies',
+    ]) {
+      const valeur = manifeste[champ];
+      const vide =
+        valeur === undefined ||
+        (Array.isArray(valeur) ? valeur.length === 0 : Object.keys(valeur as object).length === 0);
+      expect(vide, `${champ} doit etre absent ou vide`).toBe(true);
+    }
+    expect(brut).not.toContain('better-auth');
+  });
+
+  it('src ne livre que du TypeScript', () => {
+    // Un fichier `.js` echapperait au typecheck et a toutes les gardes qui lisent `.ts` et
+    // `.tsx`, et partirait quand meme chez chaque produit, puisque `files` livre tout `src`.
+    const autres: string[] = [];
+    const parcourir = (dossier: string): void => {
+      for (const entree of readdirSync(dossier)) {
+        const chemin = join(dossier, entree);
+        if (statSync(chemin).isDirectory()) parcourir(chemin);
+        else if (!/\.(ts|tsx)$/.test(chemin)) autres.push(chemin);
+      }
+    };
+    parcourir('src');
+    expect(autres).toEqual([]);
+  });
+
+  it('ne nomme better-auth sous aucune forme d import', () => {
+    // Statique, `require`, `import()` dynamique ou reexport : une chaine qui commence par le
+    // nom du moteur n a rien a faire dans une declaration du SDK.
+    expect(sansCommentaires(TOUT)).not.toMatch(/['"`]better-auth/);
+  });
+
+  it('la lecture des noms exportes voit les blocs multilignes, sinon la garde ne prouve rien', () => {
+    const noms = nomsExportes(sansCommentaires(TOUT));
+    for (const attendu of [
+      'requireSession',
+      'getProductAccess',
+      'PortailIndisponibleErreur',
+      'ai5dAuthMiddleware',
+      'UserButton',
+      'Ai5dSession',
+    ]) {
+      expect(noms.has(attendu), `${attendu} devrait etre lu`).toBe(true);
+    }
+    const temoin = nomsExportes("export {\n  lire,\n  requireSession as signIn,\n} from './x';");
+    expect(temoin.has('signIn')).toBe(true);
+  });
+
+  it('aucun nom exporte ne connecte ni ne lit les droits d un tiers', () => {
+    const noms = nomsExportes(sansCommentaires(TOUT));
+    for (const interdit of [
+      'signIn',
+      'signUp',
+      'signOut',
+      'setActiveOrganization',
+      'getUser',
+      'grantAccess',
+    ]) {
+      expect(noms.has(interdit), `${interdit} dans la surface publique`).toBe(false);
+    }
+  });
+
+  it('ne connait aucune adresse du moteur ni de l API a cle, meme absolue', () => {
+    const temoin = sansCommentaires("const u = 'https://compte.fr/api/auth/x'; // note");
+    expect(temoin).toContain('/api/auth/');
+    expect(temoin).not.toContain('note');
+
+    const code = sansCommentaires(TOUT);
+    expect(code).not.toContain('/api/auth/');
+    expect(code).not.toContain('/api/v1/');
+  });
+});

@@ -39,11 +39,35 @@ function declarations(source: string): string {
  * connexion portant un mot de passe.
  */
 const SECRETS = [
-  /ai5d_sk_(live|test)_[A-Za-z0-9]{20,}/,
+  // La cle produit : 43 caracteres base64url, donc des `-` et des `_` possibles des le debut.
+  /ai5d_sk_(live|test)_[A-Za-z0-9_-]{20,}/,
+  // La cle Resend a deux segments, `re_<court>_<long>` ; l ancien motif d un seul tenant ne
+  // la reconnaissait pas. Revue du gardien, 10 septembre 2026. Les deux formes sont gardees.
   /re_[A-Za-z0-9]{16,}/,
+  /re_[A-Za-z0-9]{4,}_[A-Za-z0-9_-]{12,}/,
   /BEGIN [A-Z ]*PRIVATE KEY/,
   /postgres(ql)?:\/\/[^ ]*:[^ ]*@/,
 ];
+
+describe('les motifs de secret reconnaissent les vraies formes', () => {
+  /*
+    Sans ce controle, la garde du bas de fichier pouvait passer au vert en ne reconnaissant
+    rien : c est ce qui est arrive, les deux premiers motifs ratant la vraie cle Resend et pres
+    de la moitie des cles produit. Les exemples sont FABRIQUES a l execution, pour que ce
+    fichier ne porte lui-meme aucune forme de secret.
+  */
+  const exemples = {
+    resend: ['re', 'Ab12Cd34', 'Ef56Gh78Ij90Kl12Mn34'].join('_'),
+    produitAvecTiret: ['ai5d', 'sk', 'live', '-Ab_12'.repeat(7)].join('_'),
+    produitSimple: ['ai5d', 'sk', 'test', 'Ab12'.repeat(8)].join('_'),
+  };
+
+  for (const [nom, exemple] of Object.entries(exemples)) {
+    it(`reconnait une cle de forme ${nom}`, () => {
+      expect(SECRETS.some((motif) => motif.test(exemple))).toBe(true);
+    });
+  }
+});
 
 describe('une version est un fait verifiable', () => {
   it('package.json porte une version semantique', () => {
