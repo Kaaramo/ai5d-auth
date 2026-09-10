@@ -1,14 +1,34 @@
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     /*
-      Le paquet porte desormais trois composants React, depuis le sprint 06.
+      Le paquet livre du TypeScript brut : chaque produit le compile sous SES reglages, et
+      `skipLibCheck` ne dispense que des fichiers `.d.ts`, jamais des `.ts`. Il doit donc compiler
+      sous les reglages les plus stricts de l ecosysteme, pas seulement sous les siens.
 
+      Jusqu au sprint 16, ces reglages arrivaient par heritage de `tsconfig.base.json`
+      d `ai5d-platform`. Hors du monorepo l heritage disparait : ils sont recopies ici a la
+      lettre, et `tests/invariants/depot.test.ts` refuse qu un seul manque.
+    */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    /*
       `react-jsx` et non `preserve` : ce tsconfig ne sert qu au typecheck, jamais a une
-      construction. C est Next, chez le produit consommateur, qui transforme reellement le
-      JSX — d ou `transpilePackages` dans sa configuration.
+      construction. C est Next, chez le produit consommateur, qui transforme reellement le JSX,
+      d ou `transpilePackages` dans sa configuration.
     */
     "jsx": "react-jsx"
   },
-  "include": ["src", "*.ts"]
+  "include": ["src", "tests", "*.ts"]
 }

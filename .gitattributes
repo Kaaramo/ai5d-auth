@@ -1,0 +1,9 @@
+# Les fins de ligne sont normalisees en LF, partout et pour tout le monde.
+#
+# Sans ce fichier, git convertit en CRLF a la sortie sur Windows, et Prettier refuse alors
+# des fichiers qu il avait lui-meme ecrits. L integration continue tourne sur Linux et ne
+# voit rien : le defaut n apparait que sur le poste, apres un clone.
+* text=auto eol=lf
+
+# Le verrou pnpm est genere : on ne le reformate pas.
+pnpm-lock.yaml -diff linguist-generated
