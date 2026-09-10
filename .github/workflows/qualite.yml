@@ -1,0 +1,32 @@
+name: Qualité
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Aucun jeton : le depot du SDK et celui du systeme de design sont publics.
+jobs:
+  qualite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Non bloquant, et pour la meme raison que dans la plateforme : les vulnerabilites
+      # connues au 10 septembre 2026 sont dans l outillage de test (vitest 2, vite, esbuild),
+      # qu aucun produit n installe. La montee de vitest a la version 4.1.11 ou plus les ferme ;
+      # ce jour-la, retirer `continue-on-error`.
+      - run: pnpm audit --audit-level high
+        continue-on-error: true
+
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm test
