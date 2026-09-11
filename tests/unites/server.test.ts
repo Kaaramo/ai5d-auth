@@ -180,7 +180,11 @@ describe('requireSession', () => {
   */
   it('redirige vers le portail avec la page courante encodee', async () => {
     entetesGet.mockImplementation((n: string) =>
-      n === 'x-ai5d-url' ? 'https://lab.ai5d.technology/espace' : null,
+      n === 'x-ai5d-url'
+        ? 'https://lab.ai5d.technology/espace'
+        : n === 'host'
+          ? 'lab.ai5d.technology'
+          : null,
     );
     vi.stubGlobal('fetch', vi.fn());
 
@@ -200,6 +204,39 @@ describe('requireSession', () => {
       a partir d en-tetes que le client controle.
     */
     entetesGet.mockReturnValue(null);
+    vi.stubGlobal('fetch', vi.fn());
+
+    await expect(requireSession()).rejects.toThrow('REDIRECTION');
+    expect(rediriger).toHaveBeenCalledWith(`${PORTAIL}/connexion`);
+  });
+
+  it('ignore une adresse de retour d un autre hote, et renvoie sans destination', async () => {
+    /*
+      VERSION 1.0.2, remarque de la revue du gardien des frontieres du sprint 16.
+
+      Sur une page hors du `matcher`, le middleware ne s execute pas : rien n ecrase
+      `x-ai5d-url`, et un client peut le poser lui-meme. Le SDK confronte donc l en-tete a
+      `host`, que le navigateur de la personne visee envoie toujours, et ignore ce qui ne
+      correspond pas. AI5D Compte refusait deja cette destination ; le SDK ne la propose plus.
+    */
+    entetesGet.mockImplementation((n: string) =>
+      n === 'x-ai5d-url'
+        ? 'https://attaquant.fr/piege'
+        : n === 'host'
+          ? 'lab.ai5d.technology'
+          : null,
+    );
+    vi.stubGlobal('fetch', vi.fn());
+
+    await expect(requireSession()).rejects.toThrow('REDIRECTION');
+    expect(rediriger).toHaveBeenCalledWith(`${PORTAIL}/connexion`);
+  });
+
+  it('ignore le retour quand l en-tete host manque', async () => {
+    // Sans hote, la comparaison est impossible : on ne propose aucune destination.
+    entetesGet.mockImplementation((n: string) =>
+      n === 'x-ai5d-url' ? 'https://lab.ai5d.technology/espace' : null,
+    );
     vi.stubGlobal('fetch', vi.fn());
 
     await expect(requireSession()).rejects.toThrow('REDIRECTION');

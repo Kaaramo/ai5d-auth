@@ -1,6 +1,6 @@
 import { cookiesRequete, entetesRequete, rediriger } from './requete';
 import { lireSession } from './cache';
-import { urlPortail } from './url';
+import { retourSur, urlPortail } from './url';
 import { AccesRefuseErreur, PortailIndisponibleErreur, RoleRefuseErreur } from './erreurs';
 import type { AccesProduit, Ai5dSession, OrganisationActive, RoleOrganisation } from './types';
 
@@ -84,7 +84,14 @@ export async function getSession(cookieExplicite?: string): Promise<Ai5dSession 
  */
 async function urlCourante(): Promise<string | undefined> {
   const e = await entetesRequete();
-  return e.get('x-ai5d-url') ?? undefined;
+  /*
+    L EN-TETE EST CONFRONTE A L HOTE DE LA REQUETE. Version 1.0.2.
+
+    Sur une page hors du `matcher`, le middleware ne s execute pas : rien n ecrase
+    `x-ai5d-url`, et un client peut le poser lui-meme. `host`, lui, vient du navigateur de la
+    personne : un tiers ne peut pas le choisir a sa place. Voir `retourSur`.
+  */
+  return retourSur(e.get('x-ai5d-url'), e.get('host'));
 }
 
 /**
