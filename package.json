@@ -1,6 +1,6 @@
 {
   "name": "@ai5d/auth",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "SDK d'identite de l'ecosysteme AI5D : session, organisation active et droits du visiteur, lus sur AI5D Compte",
   "license": "UNLICENSED",
   "private": true,

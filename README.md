@@ -46,6 +46,9 @@ Ils se compilent sous vos réglages. Next 16 et React 19 sont requis.
 AI5D_ACCOUNT_URL=https://compte.ai5d.technology
 ```
 
+Depuis la version 1.0.2, le SDK le vérifie lui-même : une valeur qui n'est pas une URL, ou une
+adresse en clair hors de `localhost` et `127.0.0.1`, fait lever une erreur au premier appel.
+
 Elle doit être en `https` hors de votre poste : le SDK envoie à cette adresse le cookie de
 session de chaque visiteur. Une coquille ou un `http://` l'enverrait ailleurs, ou en clair, sans
 la moindre erreur.
@@ -70,6 +73,10 @@ export default async function Layout({ children }: { children: React.ReactNode }
 
 **Une page protégée**, et le middleware qui évite de la charger pour rien. Donnez-lui toujours
 un `matcher` : sans lui, il s'applique à toutes vos routes, pages publiques comprises.
+
+Le retour après connexion n'est transmis que pour les pages que votre `matcher` couvre, et
+seulement si son adresse désigne votre propre hôte. Ailleurs, la personne arrive sur l'accueil de
+son compte : c'est un inconfort, jamais une destination choisie par quelqu'un d'autre.
 
 ```ts
 // middleware.ts
