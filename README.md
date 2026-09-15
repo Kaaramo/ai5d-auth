@@ -44,15 +44,13 @@ votre produit, le SDK doit demander à Compte « qui est cette personne ? ». Po
 il doit savoir **à quelle adresse** se trouve Compte. `AI5D_ACCOUNT_URL` est cette adresse, et rien
 d'autre : ce n'est ni une clé ni un secret.
 
-| Où tourne votre produit | Valeur de `AI5D_ACCOUNT_URL`                                                                                                   |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| En production           | `https://compte.ai5d.technology`                                                                                               |
-| En préproduction        | `https://compte.staging.ai5d.technology`                                                                                       |
-| Sur votre poste         | L'adresse du Compte que vous faites tourner en local, par exemple `http://localhost:3000`, et celle qu'il affiche au démarrage |
+**Sa valeur est toujours la même : `https://compte.ai5d.technology`**, en production comme sur
+votre poste. Il n'existe pas aujourd'hui de Compte de préproduction ; ce guide le dira le jour où il
+existera.
 
 On la pose dans `.env.local` sur le poste, et dans les variables d'environnement de l'hébergeur
-(Vercel) pour la préproduction et la production. Une valeur fausse ne produit pas toujours
-d'erreur : les visiteurs apparaissent simplement tous déconnectés.
+(Vercel) en ligne. Une valeur fausse ne produit pas toujours d'erreur : les visiteurs apparaissent
+simplement tous déconnectés.
 
 ### De zéro à une page protégée
 
@@ -65,7 +63,9 @@ d'erreur : les visiteurs apparaissent simplement tous déconnectés.
 6. **Lire les droits** avec le slug reçu : `const acces = await getProductAccess('votre-slug')`,
    puis `<AccesRefuse produit="Nom du produit" />` quand `acces` est vide. Un slug mal écrit ne lève
    aucune erreur : il rend un accès vide, comme pour une personne sans droit.
-7. **Mettre en ligne** sous `ai5d.technology`, section [Mettre en ligne](#mettre-en-ligne).
+7. **Développer sur son poste** avec une vraie session, section
+   [Développer sur son poste](#développer-sur-son-poste).
+8. **Mettre en ligne** sous `ai5d.technology`, section [Mettre en ligne](#mettre-en-ligne).
 
 ## Installer
 
@@ -126,16 +126,19 @@ export default async function Layout({ children }: { children: React.ReactNode }
 }
 ```
 
-**Une page protégée**, et le middleware qui évite de la charger pour rien. Donnez-lui toujours
-un `matcher` : sans lui, il s'applique à toutes vos routes, pages publiques comprises.
+**Une page protégée**, et le proxy qui évite de la charger pour rien. Donnez-lui toujours un
+`matcher` : sans lui, il s'applique à toutes vos routes, pages publiques comprises.
+
+Next 16 appelle ce fichier `proxy.ts`. L'ancien nom, `middleware.ts` avec un export `middleware`,
+fonctionne encore mais affiche un avertissement de dépréciation à chaque démarrage.
 
 Le retour après connexion n'est transmis que pour les pages que votre `matcher` couvre, et
 seulement si son adresse désigne votre propre hôte. Ailleurs, la personne arrive sur l'accueil de
 son compte : c'est un inconfort, jamais une destination choisie par quelqu'un d'autre.
 
 ```ts
-// middleware.ts
-export { ai5dAuthMiddleware as middleware } from '@ai5d/auth/middleware';
+// proxy.ts
+export { ai5dAuthMiddleware as proxy } from '@ai5d/auth/middleware';
 export const config = { matcher: ['/espace/:path*'] };
 ```
 
@@ -233,7 +236,7 @@ import { themeOuSysteme, COOKIE_THEME } from '@ai5d/design-system/theme';
 import { cookies } from 'next/headers';
 import { NavigationBarre, NavigationRail } from './navigation';
 
-/** `.ai5d.technology` en production, `.staging.ai5d.technology` en préproduction, rien en local. */
+/** Le domaine parent de Compte : `.ai5d.technology`. */
 function domaineDuCookie(): string | undefined {
   const hote = new URL(process.env.AI5D_ACCOUNT_URL ?? 'http://localhost').hostname;
   return hote.startsWith('compte.') ? hote.slice('compte'.length) : undefined;
@@ -263,19 +266,77 @@ client qui lit l'adresse, pour la même raison que la rubrique active. Le reste 
 (en-têtes de rubrique, cartes, dialogues, états vides) est décrit dans le README du système de
 design.
 
+## Développer sur son poste
+
+Compte n'a pas de version locale pour vous : son code est privé, et vous n'en avez pas besoin. Votre
+produit, sur votre poste, interroge **le vrai Compte**. Il faut seulement que votre navigateur lui
+confie la session, et il ne la confie qu'à une adresse HTTPS sous `ai5d.technology`. `localhost`
+ne la reçoit jamais.
+
+On donne donc à votre poste un nom sous ce domaine, qui ne mène qu'à lui. Les exemples prennent
+`dev-lab.ai5d.technology` ; remplacez `lab` par votre produit.
+
+**1. Le nom, dans le fichier `hosts`** (droits d'administrateur requis) :
+
+| Système      | Fichier                                 |
+| ------------ | --------------------------------------- |
+| Windows      | `C:\Windows\System32\drivers\etc\hosts` |
+| macOS, Linux | `/etc/hosts`                            |
+
+```
+127.0.0.1 dev-lab.ai5d.technology
+```
+
+Cette ligne ne vaut que pour votre machine. Elle ne crée rien sur Internet.
+
+**2. Un certificat pour ce nom**, rangé dans `certs/`, et ce dossier dans `.gitignore` :
+
+```bash
+mkdir certs
+openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
+  -keyout certs/dev.key -out certs/dev.crt \
+  -subj "/CN=dev-lab.ai5d.technology" -addext "subjectAltName=DNS:dev-lab.ai5d.technology"
+```
+
+Sous Windows, dans Git Bash, préfixez la commande par `MSYS_NO_PATHCONV=1 ` : sans cela, Git Bash
+transforme `/CN=…` en chemin de disque et `openssl` refuse le nom.
+
+Le navigateur signale ce certificat au premier accès : acceptez-le une fois. `mkcert
+dev-lab.ai5d.technology` produit un certificat qu'il reconnaît d'emblée, si vous l'avez installé.
+
+**3. Le serveur de développement, sous ce nom**, dans `package.json` :
+
+```json
+"dev": "next dev -H dev-lab.ai5d.technology -p 3443 --experimental-https --experimental-https-key certs/dev.key --experimental-https-cert certs/dev.crt"
+```
+
+**`-H` n'est pas facultatif.** Sans lui, Next construit l'adresse des requêtes avec `localhost`, et
+le retour après connexion pointe `https://localhost:3443` : Compte le refuse, et la personne arrive
+sur l'accueil de son compte au lieu de revenir sur votre page.
+
+**4. La variable**, dans `.env.local` : `AI5D_ACCOUNT_URL=https://compte.ai5d.technology`.
+
+**5. Se connecter, puis ouvrir la page.** Connectez-vous sur `https://compte.ai5d.technology` dans le
+même navigateur, puis ouvrez `https://dev-lab.ai5d.technology:3443/espace`. Sans session, elle vous
+envoie vers la connexion et vous ramène ensuite sur votre page locale.
+
+**Travaillez avec un compte de test**, et demandez à AI5D qu'on lui accorde l'accès à votre slug : vous
+développez contre les vrais comptes. Aucune clé produit ne se pose sur un poste de développement.
+
 ## Mettre en ligne
 
 **Le produit doit vivre sous `ai5d.technology`.** La session est un cookie posé par Compte sur
 `.ai5d.technology` : le navigateur ne l'envoie qu'aux sites de ce domaine. Un produit sur un autre
-domaine verrait tous ses visiteurs déconnectés, sans aucun message d'erreur.
+domaine, `monproduit.com` ou `monproduit.vercel.app`, verrait tous ses visiteurs déconnectés, sans
+aucun message d'erreur.
 
-| Environnement | Adresse du produit                | `AI5D_ACCOUNT_URL`                       |
-| ------------- | --------------------------------- | ---------------------------------------- |
-| Préproduction | `produit.staging.ai5d.technology` | `https://compte.staging.ai5d.technology` |
-| Production    | `produit.ai5d.technology`         | `https://compte.ai5d.technology`         |
+| Adresse du produit        | `AI5D_ACCOUNT_URL`               |
+| ------------------------- | -------------------------------- |
+| `produit.ai5d.technology` | `https://compte.ai5d.technology` |
 
-Faites la préproduction d'abord. Ses comptes sont séparés de ceux de la production : une erreur
-n'y touche personne.
+Le sous-domaine est branché par AI5D sur votre projet Vercel. Les adresses de prévisualisation de
+Vercel (`*.vercel.app`) ne reçoivent pas la session : pour tester une page connectée avant la mise en
+ligne, passez par votre poste, section précédente.
 
 **Vérifier que la connexion suit.** Le cookie de session est `HttpOnly` : il n'apparaît ni dans
 `document.cookie` ni dans la console, et c'est normal. La preuve est ailleurs :
@@ -287,13 +348,14 @@ n'y touche personne.
 La troisième étape est celle qui prouve le plus : la session vit dans Compte, et aucun produit ne
 peut prolonger un accès que la personne a fermé.
 
-| Ce qu'on voit                                         | La cause, presque toujours                                                                                |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Tous les visiteurs apparaissent déconnectés           | Le produit n'est pas sous `ai5d.technology`, ou la variable pointe le mauvais Compte                      |
-| Boucle entre le produit et l'écran de connexion       | Le produit et `AI5D_ACCOUNT_URL` ne sont pas dans le même environnement (préproduction contre production) |
-| `AI5D_ACCOUNT_URL n'est pas defini` au premier appel  | La variable manque sur cet environnement de l'hébergeur                                                   |
-| Erreur de syntaxe au chargement d'un module `@ai5d/…` | `transpilePackages` manque dans `next.config.ts`                                                          |
-| L'accès est toujours refusé                           | Le slug est mal écrit, ou aucun droit n'a été accordé à la personne dans Compte                           |
+| Ce qu'on voit                                         | La cause, presque toujours                                                           |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Tous les visiteurs apparaissent déconnectés           | Le produit n'est pas sous `ai5d.technology`, ou la variable pointe le mauvais Compte |
+| En local, la connexion ramène sur l'accueil du compte | Le serveur de développement n'est pas lancé avec `-H dev-lab.ai5d.technology`        |
+| En local, la page reste déconnectée                   | L'adresse ouverte est `localhost`, ou n'est pas en HTTPS                             |
+| `AI5D_ACCOUNT_URL n'est pas defini` au premier appel  | La variable manque sur cet environnement de l'hébergeur                              |
+| Erreur de syntaxe au chargement d'un module `@ai5d/…` | `transpilePackages` manque dans `next.config.ts`                                     |
+| L'accès est toujours refusé                           | Le slug est mal écrit, ou aucun droit n'a été accordé à la personne dans Compte      |
 
 ## Ce qu'il ne faut pas croire
 
