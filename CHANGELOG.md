@@ -3,6 +3,23 @@
 Chaque version porte une étiquette annotée `vX.Y.Z`. Épinglez toujours une étiquette, jamais une
 branche. La règle de ce qui est majeur, mineur ou correctif est dans le README.
 
+## 1.1.0 : 15 septembre 2026
+
+Les composants passent sur le système de design `1.0.1`. Aucune signature ne change, aucun export
+n'est retiré.
+
+- `UserButton` emploie l'`Avatar` du système au lieu de son propre disque d'initiales. Il affiche
+  la photo de la personne quand la session en porte une, et retombe sur les initiales si elle ne
+  charge pas.
+- Les initiales viennent du système. La copie du SDK coupait aussi sur `@` et `.` : sans nom,
+  « contact@exemple.fr » donnait « CE », une lettre du domaine. Elle donne désormais « C ». Les
+  trois fonctions de l'écosystème ont été comparées avant ce retrait, décision 004 du système.
+- Un nom fait d'espaces vaut un nom absent : le bouton affiche l'adresse, et non un libellé vide.
+- `OrganizationSwitcher` porte le rôle dans une `Pastille` du système, comme le portail, au lieu
+  d'un texte pâle après une virgule.
+- Le système de design s'installe en `#v1.0.1`, avec `lucide-react` en `^1.0.0`, que le système
+  demande depuis sa version `1.0.0` (voir le README, section Installer).
+
 ## 1.0.2 : 11 septembre 2026
 
 Correctif de sûreté. Aucune signature ne change.

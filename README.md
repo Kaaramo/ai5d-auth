@@ -20,8 +20,11 @@ votre visiteur. Ces deux choses passent par AI5D Compte et par son API à clé.
 **Installez toujours les deux paquets ensemble, par étiquette, dans une même commande.**
 
 ```bash
-pnpm add github:Kaaramo/ai5d-auth#v1.0.1 github:Kaaramo/ai5d-digital-design-system#v0.7.0
+pnpm add github:Kaaramo/ai5d-auth#v1.1.0 github:Kaaramo/ai5d-digital-design-system#v1.0.1 lucide-react@^1.0.0
 ```
+
+`lucide-react` est demandé par le système de design depuis sa version `1.0.0`, pas par le SDK. Il
+figure dans la commande parce que les composants du SDK s'appuient sur ceux du système.
 
 Le SDK déclare le système de design comme dépendance de pair. Si votre produit ne l'installe
 pas lui-même, pnpm va le chercher sur le registre npm, où ce nom ne vous garantit rien : un

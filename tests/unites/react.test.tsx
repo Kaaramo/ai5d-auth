@@ -227,6 +227,25 @@ describe('UserButton', () => {
   it("retombe sur l'adresse quand le nom manque", () => {
     poser(<UserButton />, session({ user: { ...session().user, name: null } }));
     expect(screen.getByText('awa@exemple.fr')).toBeInTheDocument();
+    // Une lettre juste plutot que deux dont une du domaine : decision 004 du systeme.
+    expect(screen.getByText('A')).toBeInTheDocument();
+  });
+
+  it("tient un nom fait d'espaces pour un nom absent", () => {
+    poser(<UserButton />, session({ user: { ...session().user, name: '   ' } }));
+    expect(screen.getByText('awa@exemple.fr')).toBeInTheDocument();
+    expect(screen.queryByText('?')).toBeNull();
+  });
+
+  it("emploie l'avatar du systeme, et sa photo quand la session en porte une", () => {
+    const { container } = poser(
+      <UserButton />,
+      session({ user: { ...session().user, image: 'https://medias.exemple.fr/awa.jpg' } }),
+    );
+    const photo = container.querySelector('img');
+    expect(photo?.getAttribute('src')).toBe('https://medias.exemple.fr/awa.jpg');
+    // Decoratif : le nom est ecrit a cote.
+    expect(photo?.getAttribute('alt')).toBe('');
   });
 
   it('porte exactement trois entrees, toutes vers le portail', () => {
@@ -267,8 +286,13 @@ describe('OrganizationSwitcher', () => {
 
   it('affiche le nom et le role en toutes lettres', () => {
     poser(<OrganizationSwitcher />, session({ organisation: organisation('admin') }));
-    expect(screen.getByText(/Clinique Saint-Louis/)).toBeInTheDocument();
-    expect(screen.getByText(/administrateur/)).toBeInTheDocument();
+    expect(screen.getByText('Clinique Saint-Louis')).toBeInTheDocument();
+    expect(screen.getByText('administrateur')).toBeInTheDocument();
+  });
+
+  it('porte le role dans une pastille du systeme', () => {
+    poser(<OrganizationSwitcher />, session({ organisation: organisation('owner') }));
+    expect(screen.getByText('propriétaire').getAttribute('data-ton')).toBe('information');
   });
 
   it('pointe le portail, jamais une action locale', () => {

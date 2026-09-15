@@ -1,6 +1,6 @@
 {
   "name": "@ai5d/auth",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "SDK d'identite de l'ecosysteme AI5D : session, organisation active et droits du visiteur, lus sur AI5D Compte",
   "license": "UNLICENSED",
   "private": true,
@@ -34,7 +34,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@ai5d/design-system": "github:Kaaramo/ai5d-digital-design-system#v0.7.0",
+    "@ai5d/design-system": "github:Kaaramo/ai5d-digital-design-system#v1.0.1",
     "@eslint/js": "^9.17.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
@@ -43,6 +43,7 @@
     "@types/react-dom": "^19.2.7",
     "eslint": "^9.17.0",
     "jsdom": "^30.0.1",
+    "lucide-react": "^1.46.0",
     "next": "^16.2.12",
     "prettier": "^3.4.2",
     "react": "^19.2.8",

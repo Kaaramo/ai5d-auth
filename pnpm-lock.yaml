@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@ai5d/design-system':
-        specifier: github:Kaaramo/ai5d-digital-design-system#v0.7.0
-        version: https://codeload.github.com/Kaaramo/ai5d-digital-design-system/tar.gz/531da6131c8dcfaa25fa40fb59e1b6cc29725413(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: github:Kaaramo/ai5d-digital-design-system#v1.0.1
+        version: https://codeload.github.com/Kaaramo/ai5d-digital-design-system/tar.gz/962f39cfa4040f6ccbabe0a745e43da70cada221(lucide-react@1.46.0(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@eslint/js':
         specifier: ^9.17.0
         version: 9.39.5
@@ -35,6 +35,9 @@ importers:
       jsdom:
         specifier: ^30.0.1
         version: 30.0.1
+      lucide-react:
+        specifier: ^1.46.0
+        version: 1.46.0(react@19.3.0)
       next:
         specifier: ^16.2.12
         version: 16.3.4(@types/node@22.20.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -62,10 +65,11 @@ packages:
   '@adobe/css-tools@4.5.0':
     resolution: {integrity: sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q==}
 
-  '@ai5d/design-system@https://codeload.github.com/Kaaramo/ai5d-digital-design-system/tar.gz/531da6131c8dcfaa25fa40fb59e1b6cc29725413':
-    resolution: {tarball: https://codeload.github.com/Kaaramo/ai5d-digital-design-system/tar.gz/531da6131c8dcfaa25fa40fb59e1b6cc29725413}
-    version: 0.7.0
+  '@ai5d/design-system@https://codeload.github.com/Kaaramo/ai5d-digital-design-system/tar.gz/962f39cfa4040f6ccbabe0a745e43da70cada221':
+    resolution: {tarball: https://codeload.github.com/Kaaramo/ai5d-digital-design-system/tar.gz/962f39cfa4040f6ccbabe0a745e43da70cada221}
+    version: 1.0.1
     peerDependencies:
+      lucide-react: ^1.0.0
       react: '>=19'
       react-dom: '>=19'
 
@@ -1164,8 +1168,8 @@ packages:
     resolution: {integrity: sha512-4pfM1Ff0x50o0tQwb5ucw/RzNyD0/YJME6IVcStalZuMWxdt3sR3huStTtxz4PUmvZfRguvDejasvQ2kifR11g==}
     engines: {node: 20 || >=22}
 
-  lucide-react@0.469.0:
-    resolution: {integrity: sha512-28vvUnnKQ/dBwiCQtwJw7QauYnE7yd2Cyp4tTTJpvglX4EMpbflcdBgrgToX2j71B3YvugK/NH3BGUk+E/p/Fw==}
+  lucide-react@1.46.0:
+    resolution: {integrity: sha512-Bv+FZXgZPrxc/NCl1e7JJVQFLdiCxYgxNVhqoV7X0p6I8ADJo8DxBnK1auH0fZz4AmqOJ3jgneL4f1i8LJQRAA==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -1569,10 +1573,10 @@ snapshots:
 
   '@adobe/css-tools@4.5.0': {}
 
-  '@ai5d/design-system@https://codeload.github.com/Kaaramo/ai5d-digital-design-system/tar.gz/531da6131c8dcfaa25fa40fb59e1b6cc29725413(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@ai5d/design-system@https://codeload.github.com/Kaaramo/ai5d-digital-design-system/tar.gz/962f39cfa4040f6ccbabe0a745e43da70cada221(lucide-react@1.46.0(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       clsx: 2.1.1
-      lucide-react: 0.469.0(react@19.3.0)
+      lucide-react: 1.46.0(react@19.3.0)
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
 
@@ -2519,7 +2523,7 @@ snapshots:
 
   lru-cache@11.5.2: {}
 
-  lucide-react@0.469.0(react@19.3.0):
+  lucide-react@1.46.0(react@19.3.0):
     dependencies:
       react: 19.3.0
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Avatar } from '@ai5d/design-system/composants';
 import { useSession } from './hooks';
 import { usePortail } from './contexte';
 import { lienPortail } from './lien';
@@ -23,14 +24,13 @@ import { lienPortail } from './lien';
  * L ecart du sprint 03 l a retire du rail du portail, ou il ne servait pas a naviguer. Dans
  * l en-tete d un produit tiers, il est le seul repere qui dit « vous etes connecte, et sous
  * quelle identite ». C est precisement l information du moment aha.
+ *
+ * ── LE DISQUE EST L AVATAR DU SYSTEME, DEPUIS LA VERSION 1.1.0 ──────────────
+ * Le SDK portait son propre disque et sa propre fonction d initiales. Les trois fonctions de
+ * l ecosysteme ont ete comparees avant de supprimer celle-ci, decision 004 du systeme : la
+ * copie du SDK coupait sur `@` et `.`, et « contact@exemple.fr » donnait CE, une lettre du
+ * domaine. L avatar du systeme affiche aussi la photo quand la session en porte une.
  */
-
-function initiales(nom: string | null, adresse: string): string {
-  const source = nom !== null && nom.trim().length > 0 ? nom.trim() : adresse;
-  const mots = source.split(/[\s@.]+/).filter((m) => m.length > 0);
-  const deux = mots.slice(0, 2).map((m) => m[0]?.toUpperCase() ?? '');
-  return deux.join('') || '?';
-}
 
 export function UserButton() {
   const session = useSession();
@@ -47,7 +47,12 @@ export function UserButton() {
   */
   if (session === null) return null;
 
-  const nom = session.user.name ?? session.user.email;
+  /*
+    Un nom vide vaut un nom absent. `name` peut etre une chaine d espaces : sans ce repli, le
+    bouton afficherait un libelle vide et un disque « ? » a cote d une adresse connue.
+  */
+  const nomSaisi = session.user.name?.trim() ?? '';
+  const nom = nomSaisi.length > 0 ? nomSaisi : session.user.email;
 
   /*
     Le retour de la deconnexion est lu derriere une garde.
@@ -85,23 +90,8 @@ export function UserButton() {
           cursor: 'pointer',
         }}
       >
-        <span
-          aria-hidden="true"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
-            height: 28,
-            borderRadius: '50%',
-            background: 'var(--action)',
-            color: 'var(--texte-sur-action)',
-            fontSize: 'var(--taille-xs)',
-            fontWeight: 'var(--graisse-moyenne)',
-          }}
-        >
-          {initiales(session.user.name, session.user.email)}
-        </span>
+        {/* Decoratif : le nom est ecrit juste a cote, l annoncer le ferait entendre deux fois. */}
+        <Avatar nom={nom} image={session.user.image} taille={28} />
         {/* Le nom disparait sous 1280 px : la classe vient du systeme, pas d une media query
             ecrite ici. En son absence, il reste affiche, ce qui est le defaut le plus sur. */}
         <span>{nom}</span>

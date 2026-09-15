@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Pastille } from '@ai5d/design-system/composants';
 import { useActiveOrganization } from './hooks';
 import { usePortail } from './contexte';
 import { lienPortail } from './lien';
@@ -25,6 +26,11 @@ import { lienPortail } from './lien';
  * ── TROIS ETATS, ET LE PREMIER EST DE NE RIEN AFFICHER ──────────────────────
  * Aucune organisation : rien. Un selecteur vide occuperait la place et poserait une question
  * sans reponse. C est la meme regle que le selecteur du portail, ecrite au sprint 03.
+ *
+ * ── LE ROLE EST UNE PASTILLE, COMME DANS LE PORTAIL ─────────────────────────
+ * Depuis la version 1.1.0. Le portail montre le role de la personne dans une pastille
+ * d information ; le SDK l ecrivait en texte pale apres une virgule. Le meme fait se lit
+ * desormais de la meme facon dans le portail et dans un produit.
  */
 
 const LIBELLE_ROLE: Record<string, string> = {
@@ -69,13 +75,8 @@ export function OrganizationSwitcher() {
         color: 'var(--texte)',
       }}
     >
-      <span>
-        {organisation.nom}
-        <span style={{ color: 'var(--texte-faible)' }}>
-          {', '}
-          {LIBELLE_ROLE[organisation.role] ?? organisation.role}
-        </span>
-      </span>
+      <span>{organisation.nom}</span>
+      <Pastille ton="information">{LIBELLE_ROLE[organisation.role] ?? organisation.role}</Pastille>
 
       {/*
         Le lien est TOUJOURS affiche des qu il y a une organisation, et non seulement quand
