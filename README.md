@@ -15,6 +15,58 @@ middleware, un fournisseur React, trois hooks et trois composants chartés (`Use
 Il n'expose aucune fonction de connexion, et ne lit jamais les droits d'une autre personne que
 votre visiteur. Ces deux choses passent par AI5D Compte et par son API à clé.
 
+## Démarrer un nouveau produit AI5D
+
+Cette section est la page à donner à une équipe qui commence un produit. Tout ce qu'il faut pour
+brancher le produit sur les comptes AI5D y est, ou dans les sections qu'elle cite.
+
+### Ce qu'on transmet à l'équipe, et ce qu'on ne transmet pas
+
+| À transmettre                                                                                                               | Pourquoi                                                                        |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Ce dépôt, [`Kaaramo/ai5d-auth`](https://github.com/Kaaramo/ai5d-auth), public                                               | Il dit au produit qui est connecté, dans quelle organisation, avec quels droits |
+| Le système de design, [`Kaaramo/ai5d-digital-design-system`](https://github.com/Kaaramo/ai5d-digital-design-system), public | Il donne l'apparence AI5D : coquille, composants, thème                         |
+| L'adresse d'AI5D Compte pour chaque environnement (tableau plus bas)                                                        | C'est la valeur de la seule variable à poser                                    |
+| Le **slug** du produit, attribué par AI5D                                                                                   | L'identifiant qui porte les droits d'accès, par exemple `lab`                   |
+| Le **sous-domaine** du produit, sous `ai5d.technology`                                                                      | Sans lui, la connexion ne suit pas (voir « Mettre en ligne »)                   |
+| Une **clé produit**, seulement si le produit doit écrire des droits                                                         | Lire la session n'en demande aucune                                             |
+
+| À ne pas transmettre                                            | Pourquoi                                                                                                        |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Le dépôt d'AI5D Compte, `Kaaramo/ai5d-platform`                 | Il est privé. Le produit ne lit jamais la base des comptes, il interroge Compte par ce SDK, comme un navigateur |
+| Une chaîne de connexion à la base, un secret d'authentification | Le produit n'en a pas besoin, et c'est ce qui garde les comptes à l'abri d'un produit compromis                 |
+
+### La variable `AI5D_ACCOUNT_URL`, expliquée
+
+AI5D Compte est le **site des comptes** : c'est lui qui affiche l'écran de connexion, garde les
+sessions et décide des droits. Votre produit est un **autre site**. Quand une personne arrive sur
+votre produit, le SDK doit demander à Compte « qui est cette personne ? ». Pour poser la question,
+il doit savoir **à quelle adresse** se trouve Compte. `AI5D_ACCOUNT_URL` est cette adresse, et rien
+d'autre : ce n'est ni une clé ni un secret.
+
+| Où tourne votre produit | Valeur de `AI5D_ACCOUNT_URL`                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| En production           | `https://compte.ai5d.technology`                                                                                               |
+| En préproduction        | `https://compte.staging.ai5d.technology`                                                                                       |
+| Sur votre poste         | L'adresse du Compte que vous faites tourner en local, par exemple `http://localhost:3000`, et celle qu'il affiche au démarrage |
+
+On la pose dans `.env.local` sur le poste, et dans les variables d'environnement de l'hébergeur
+(Vercel) pour la préproduction et la production. Une valeur fausse ne produit pas toujours
+d'erreur : les visiteurs apparaissent simplement tous déconnectés.
+
+### De zéro à une page protégée
+
+1. **Créer l'application** Next 16 et React 19, avec pnpm.
+2. **Installer les deux paquets** par étiquette, section [Installer](#installer), et déclarer les
+   deux dans `transpilePackages`.
+3. **Poser `AI5D_ACCOUNT_URL`**, tableau ci-dessus.
+4. **Poser le fournisseur, le middleware et une page protégée**, section [Trois gestes](#trois-gestes).
+5. **Poser la coquille et le thème**, section [Coquille et thème](#coquille-et-thème).
+6. **Lire les droits** avec le slug reçu : `const acces = await getProductAccess('votre-slug')`,
+   puis `<AccesRefuse produit="Nom du produit" />` quand `acces` est vide. Un slug mal écrit ne lève
+   aucune erreur : il rend un accès vide, comme pour une personne sans droit.
+7. **Mettre en ligne** sous `ai5d.technology`, section [Mettre en ligne](#mettre-en-ligne).
+
 ## Installer
 
 **Installez toujours les deux paquets ensemble, par étiquette, dans une même commande.**
@@ -97,6 +149,152 @@ export default async function Espace() {
 }
 ```
 
+## Coquille et thème
+
+Un produit AI5D a la même allure que Compte : un rail de rubriques sur ordinateur, une barre basse
+sur téléphone, le thème que la personne a choisi. Tout vient du système de design ; le produit
+fournit ses rubriques et le lien de son routeur.
+
+**Le thème**, lu au serveur dans le gabarit racine, pour que la page ne clignote pas du clair au
+sombre. Compte écrit le choix de la personne dans un cookie commun à tous les produits :
+
+```tsx
+// app/layout.tsx
+import { cookies } from 'next/headers';
+import { Ai5dProvider, getSession } from '@ai5d/auth';
+import { COOKIE_THEME, attributTheme, themeOuSysteme } from '@ai5d/design-system/theme';
+
+export default async function Layout({ children }: { children: React.ReactNode }) {
+  const session = await getSession();
+  const theme = themeOuSysteme((await cookies()).get(COOKIE_THEME)?.value);
+
+  return (
+    <html lang="fr" data-densite="equilibre" data-theme={attributTheme(theme)}>
+      <body style={{ margin: 0, background: 'var(--surface-1)', color: 'var(--texte)' }}>
+        <Ai5dProvider valeur={session}>{children}</Ai5dProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+**Les rubriques**, dans un module **client** : la rubrique active dépend de l'adresse, et un
+gabarit serveur partagé n'est pas recalculé d'une page à l'autre. Calculée au serveur, elle
+resterait figée sur la première page ouverte.
+
+```tsx
+// app/(espace)/navigation.tsx
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { House, Users } from 'lucide-react';
+import { BarreOnglets, LiensRail, type Rubrique } from '@ai5d/design-system/composants';
+
+const RUBRIQUES: Rubrique[] = [
+  { id: 'accueil', libelle: 'Accueil', icone: House, href: '/accueil' },
+  { id: 'equipe', libelle: 'Équipe', icone: Users, href: '/equipe' },
+];
+
+const active = (chemin: string) => chemin.split('/').filter(Boolean)[0] ?? '';
+
+export function NavigationRail() {
+  return (
+    <LiensRail
+      rubriques={RUBRIQUES}
+      actif={active(usePathname())}
+      Lien={Link}
+      etiquette="Rubriques"
+    />
+  );
+}
+
+export function NavigationBarre() {
+  return (
+    <BarreOnglets
+      onglets={RUBRIQUES}
+      actif={active(usePathname())}
+      Lien={Link}
+      etiquette="Rubriques"
+    />
+  );
+}
+```
+
+**La coquille**, dans le gabarit des pages connectées. Le sélecteur de thème reçoit le domaine du
+cookie : c'est ce qui fait qu'un thème choisi dans un produit se retrouve dans les autres.
+
+```tsx
+// app/(espace)/layout.tsx
+import { requireSession } from '@ai5d/auth';
+import { UserButton } from '@ai5d/auth/react';
+import { CoquilleRail, SelecteurTheme } from '@ai5d/design-system/composants';
+import { themeOuSysteme, COOKIE_THEME } from '@ai5d/design-system/theme';
+import { cookies } from 'next/headers';
+import { NavigationBarre, NavigationRail } from './navigation';
+
+/** `.ai5d.technology` en production, `.staging.ai5d.technology` en préproduction, rien en local. */
+function domaineDuCookie(): string | undefined {
+  const hote = new URL(process.env.AI5D_ACCOUNT_URL ?? 'http://localhost').hostname;
+  return hote.startsWith('compte.') ? hote.slice('compte'.length) : undefined;
+}
+
+export default async function Espace({ children }: { children: React.ReactNode }) {
+  await requireSession();
+  const theme = themeOuSysteme((await cookies()).get(COOKIE_THEME)?.value);
+
+  return (
+    <CoquilleRail
+      produit="Nom du produit"
+      navigationRail={<NavigationRail />}
+      navigationBarre={<NavigationBarre />}
+      pied={<SelecteurTheme theme={theme} domaine={domaineDuCookie()} />}
+      actionsBarre={<UserButton />}
+      largeurContenu={960}
+    >
+      {children}
+    </CoquilleRail>
+  );
+}
+```
+
+`largeurContenu` est fixe ici. Si elle doit varier selon la page, calculez-la dans un composant
+client qui lit l'adresse, pour la même raison que la rubrique active. Le reste du catalogue
+(en-têtes de rubrique, cartes, dialogues, états vides) est décrit dans le README du système de
+design.
+
+## Mettre en ligne
+
+**Le produit doit vivre sous `ai5d.technology`.** La session est un cookie posé par Compte sur
+`.ai5d.technology` : le navigateur ne l'envoie qu'aux sites de ce domaine. Un produit sur un autre
+domaine verrait tous ses visiteurs déconnectés, sans aucun message d'erreur.
+
+| Environnement | Adresse du produit                | `AI5D_ACCOUNT_URL`                       |
+| ------------- | --------------------------------- | ---------------------------------------- |
+| Préproduction | `produit.staging.ai5d.technology` | `https://compte.staging.ai5d.technology` |
+| Production    | `produit.ai5d.technology`         | `https://compte.ai5d.technology`         |
+
+Faites la préproduction d'abord. Ses comptes sont séparés de ceux de la production : une erreur
+n'y touche personne.
+
+**Vérifier que la connexion suit.** Le cookie de session est `HttpOnly` : il n'apparaît ni dans
+`document.cookie` ni dans la console, et c'est normal. La preuve est ailleurs :
+
+1. Se connecter sur Compte.
+2. Ouvrir la page protégée du produit : elle s'ouvre, sans écran de connexion.
+3. Se déconnecter depuis Compte, puis recharger la page du produit : elle renvoie vers la connexion.
+
+La troisième étape est celle qui prouve le plus : la session vit dans Compte, et aucun produit ne
+peut prolonger un accès que la personne a fermé.
+
+| Ce qu'on voit                                         | La cause, presque toujours                                                                                |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Tous les visiteurs apparaissent déconnectés           | Le produit n'est pas sous `ai5d.technology`, ou la variable pointe le mauvais Compte                      |
+| Boucle entre le produit et l'écran de connexion       | Le produit et `AI5D_ACCOUNT_URL` ne sont pas dans le même environnement (préproduction contre production) |
+| `AI5D_ACCOUNT_URL n'est pas defini` au premier appel  | La variable manque sur cet environnement de l'hébergeur                                                   |
+| Erreur de syntaxe au chargement d'un module `@ai5d/…` | `transpilePackages` manque dans `next.config.ts`                                                          |
+| L'accès est toujours refusé                           | Le slug est mal écrit, ou aucun droit n'a été accordé à la personne dans Compte                           |
+
 ## Ce qu'il ne faut pas croire
 
 **Le middleware n'est pas une garde.** Il regarde seulement si un cookie est présent, pour ne
@@ -168,8 +366,10 @@ l'utiliser.
 
 ## Aller plus loin
 
-Le guide d'intégration complet (rôles, droits d'un produit, composants, erreurs fréquentes) est
-dans le dépôt de la plateforme AI5D, `docs/integration-produit.md`, accessible aux équipes AI5D.
+Ce README suffit pour brancher un produit et le mettre en ligne. Le guide détaillé (rôles, écriture
+de droits avec une clé produit, webhooks, API à clé) est dans le dépôt privé de la plateforme,
+`docs/integration-produit.md` : demandez à AI5D la partie qui vous concerne, avec votre slug et, si
+besoin, votre clé produit.
 
 ## Licence
 
